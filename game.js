@@ -7,6 +7,8 @@ var game = {
     ball: undefined,
     rows: 4,
     cols: 8,
+    running: true,
+    score: 0,
     blocks: [],
 
     sprites:{
@@ -19,6 +21,8 @@ var game = {
     init: function () {
         var canvas = document.getElementById("mycanvas");
         this.ctx = canvas.getContext("2d");
+        this.ctx.font = "20px Arial";
+        this.ctx.fillStyle = "#FFFFFF";
 
         window.addEventListener("keydown", function (e) {
             if ( e.keyCode == 37 ) {
@@ -80,6 +84,8 @@ var game = {
             this.ball.x, this.ball.y,               // координаты
             this.ball.width, this.ball.height       // размеры изображения
         );
+
+        this.ctx.fillText("SCORE: " + this.score, 15, this.height - 15);
     },
 
     update: function() {
@@ -107,13 +113,18 @@ var game = {
     run: function() {
         this.update();
         this.render();
-        window.requestAnimationFrame(function () {
-            game.run();
-        });
+
+        if ( this.running ) {
+            window.requestAnimationFrame(function () {
+                game.run();
+            });
+        }
     },
     
-    over: function () {
-        console.log("Game over");
+    over: function (message) {
+        alert(message);
+        this.running = false;
+        window.location.reload();
     }
 
 };
@@ -130,6 +141,17 @@ game.ball = {
     jump: function () {
         this.dy = -this.velocity;
         this.dx = -this.velocity;
+        this.animate();
+    },
+    animate: function () {
+        setInterval(function () {
+            ++game.ball.frame;
+
+            if ( game.ball.frame > 3 ) {
+                game.ball.frame = 0;
+            }
+        }, 100);
+
     },
     move: function () {
         this.x += this.dx;
@@ -153,9 +175,19 @@ game.ball = {
     bumpBlock: function (block) {
         this.dy *= -1;
         block.isAlive = false;
+
+        ++game.score;
+
+        if ( game.score >= game.blocks.length ) {
+            game.over("You win!");
+        }
+    },
+    onTheLeftSide: function (platform) {
+        return this.x + this.width / 2 < platform.x + platform.width / 2
     },
     bumpPlatform: function (platform) {
         this.dy = -this.velocity;
+        this.dx = this.onTheLeftSide(platform) ? -this.velocity : this.velocity;
     },
     checkBounds: function () {
         var x = this.x + this.dx;
@@ -171,8 +203,7 @@ game.ball = {
             this.x = game.width - this.width;
             this.dx = -this.velocity;
         } else if ( y + this.height > game.height ) {
-            game.over();
-            // game over
+            game.over("Game over");
         }
     }
 };
